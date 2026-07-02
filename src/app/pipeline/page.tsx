@@ -2,6 +2,9 @@ import { getLeads } from "@/lib/queries";
 import { PipelineBoard } from "@/components/pipeline/pipeline-board";
 import { LeadFormDialog } from "@/components/leads/lead-form-dialog";
 
+// Always reflect live lead data — never statically prerender this page.
+export const dynamic = "force-dynamic";
+
 export default async function PipelinePage() {
   const leads = await getLeads("ALL");
 

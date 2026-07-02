@@ -1,10 +1,4 @@
-import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL ?? "file:./dev.db",
-});
-const prisma = new PrismaClient({ adapter });
+import { prisma } from "../src/lib/prisma";
 
 async function main() {
   // Dr. Kanth — reported totals (pasted from existing tracking sheet, not yet
