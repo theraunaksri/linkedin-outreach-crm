@@ -1,24 +1,17 @@
 import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
-import { neonConfig } from "@neondatabase/serverless";
-import ws from "ws";
-
-neonConfig.webSocketConstructor = ws;
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-const connectionString =
-  process.env.DATABASE_URL ?? process.env.POSTGRES_PRISMA_URL ?? process.env.POSTGRES_URL;
+const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  throw new Error(
-    "No database connection string found. Set DATABASE_URL (or POSTGRES_PRISMA_URL / POSTGRES_URL) in your environment."
-  );
+  throw new Error("DATABASE_URL is not set. Add your Supabase connection string to the environment.");
 }
 
-const adapter = new PrismaNeon({ connectionString });
+const adapter = new PrismaPg(connectionString);
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
 
