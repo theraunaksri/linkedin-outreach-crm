@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum LinkedInAccount {
+  KANTH
+  SHAKU
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum LeadStatus {
+  ACTIVE
+  PAUSED
+  WON
+  LOST
+}
+
+enum PipelineStage {
+  NEW_LEAD
+  CONNECTION_SENT
+  CONNECTED
+  CONVERSATION_STARTED
+  ENGAGED
+  INTERESTED
+  DISCOVERY_SCHEDULED
+  DISCOVERY_COMPLETED
+  PROTOTYPE_READY
+  PROPOSAL_SENT
+  NEGOTIATION
+  CONTRACT_SENT
+  CUSTOMER
+  LOST
+}
+
+enum ProposalStatus {
+  NONE
+  CREATED
+  SENT
+  VIEWED
+  APPROVED
+  REJECTED
+}
+
+enum ContractStatus {
+  NONE
+  DRAFTED
+  SENT
+  PENDING
+  SIGNED
+}
+
+model Lead {
+  id          String @id @default(cuid())
+
+  // Identity
+  name         String
+  companyName  String?
+  designation  String?
+  linkedinUrl  String?
+  email        String?
+  phone        String?
+  country      String?
+  city         String?
+  industry     String?
+  startupStage String?
+  fundingStatus String?
+  companySize  String?
+  source       String?
+
+  // Ownership
+  account      LinkedInAccount @default(KANTH)
+  leadOwner    String?
+
+  // Pipeline
+  currentStage PipelineStage @default(NEW_LEAD)
+  priority     Priority      @default(MEDIUM)
+  status       LeadStatus    @default(ACTIVE)
+
+  // Outreach flags/dates
+  connectionRequestSentAt DateTime?
+  connectionAcceptedAt    DateTime?
+  firstMessageSentAt      DateTime?
+  firstFollowupAt         DateTime?
+  secondFollowupAt        DateTime?
+  thirdFollowupAt         DateTime?
+  replyReceivedAt         DateTime?
+  replySentiment          String?   // positive | negative | neutral
+
+  // Meetings / calls
+  discoveryScheduledAt DateTime?
+  discoveryCompletedAt DateTime?
+  demoScheduledAt      DateTime?
+  demoCompletedAt      DateTime?
+  prototypeRequestedAt DateTime?
+  prototypeDeliveredAt DateTime?
+  meetingScheduled     Boolean   @default(false)
+  meetingDate          DateTime?
+
+  // Proposal / contract
+  proposalStatus  ProposalStatus @default(NONE)
+  proposalSentAt  DateTime?
+  contractStatus  ContractStatus @default(NONE)
+  contractSentAt  DateTime?
+  contractSignedAt DateTime?
+
+  // Deal
+  probabilityOfClosing Int? // 0-100
+  wonAt  DateTime?
+  lostAt DateTime?
+
+  lastActivityDate  DateTime?
+  nextFollowupDate  DateTime?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leadNotes  Note[]
+  calls      CallLog[]
+  tasks      Task[]
+
+  @@index([account])
+  @@index([currentStage])
+  @@index([status])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author    String?
+  body      String
+  isInternal Boolean @default(true)
+  createdAt DateTime @default(now())
+}
+
+model CallLog {
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  date        DateTime
+  durationMin Int?
+  meetingType String?  // discovery | demo | follow-up | closing
+  outcome     String?
+  notes       String?
+  nextAction  String?
+  followUpDate DateTime?
+  recordingUrl String?
+  owner       String?
+  createdAt   DateTime @default(now())
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  leadId    String?
+  lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  title     String
+  owner     String?
+  dueDate   DateTime?
+  priority  Priority @default(MEDIUM)
+  status    String   @default("PENDING") // PENDING | COMPLETED
+  notes     String?
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+}
+
+// Periodic aggregate counters, used when only rollup numbers are available
+// (e.g. pasted from an existing report) rather than per-lead records.
+model OutreachMetric {
+  id        String   @id @default(cuid())
+  account   LinkedInAccount
+  periodLabel String  // e.g. "2026-06", "This Month", "Last Month"
+  periodStart DateTime?
+  periodEnd   DateTime?
+
+  requestsSent        Int @default(0)
+  connectionsAccepted Int @default(0)
+  conversationStarted Int @default(0)
+  engaged             Int @default(0)
+  interested          Int @default(0)
+  firstMessagesSent   Int @default(0)
+  firstFollowupsSent  Int @default(0)
+  secondFollowupsSent Int @default(0)
+  thirdFollowupsSent  Int @default(0)
+  repliesReceived     Int @default(0)
+  positiveReplies     Int @default(0)
+  negativeReplies     Int @default(0)
+  callsScheduled      Int @default(0)
+  callsCompleted      Int @default(0)
+  prototypeShared     Int @default(0)
+  proposalSent        Int @default(0)
+  negotiation         Int @default(0)
+  contractSent        Int @default(0)
+  contractSigned      Int @default(0)
+  wonDeals            Int @default(0)
+  lostDeals           Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([account, periodLabel])
+}
