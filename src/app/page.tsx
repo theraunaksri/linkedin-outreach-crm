@@ -1,6 +1,8 @@
-import { getKpis, getFunnelMetrics, getOutreachTotals, type AccountFilter } from "@/lib/queries";
-import { KpiCards } from "@/components/dashboard/kpi-cards";
-import { Funnel } from "@/components/dashboard/funnel";
+import { BarChart3 } from "lucide-react";
+import { getKpis, getSimpleFunnel, getOutreachTotals, type AccountFilter } from "@/lib/queries";
+import { HeroStats } from "@/components/dashboard/hero-stats";
+import { NarrativeSummary } from "@/components/dashboard/narrative-summary";
+import { SimpleFunnelChart } from "@/components/dashboard/simple-funnel-chart";
 import { AccountTabs } from "@/components/dashboard/account-tabs";
 import { EditMetricsDialog } from "@/components/dashboard/edit-metrics-dialog";
 import { LeadFormDialog } from "@/components/leads/lead-form-dialog";
@@ -15,9 +17,9 @@ export default async function DashboardPage({
   const params = await searchParams;
   const account = (params.account === "KANTH" || params.account === "SHAKU" ? params.account : "ALL") as AccountFilter;
 
-  const [kpis, funnelItems, kanthTotals, shakuTotals] = await Promise.all([
+  const [kpis, funnelData, kanthTotals, shakuTotals] = await Promise.all([
     getKpis(account),
-    getFunnelMetrics(account),
+    getSimpleFunnel(account),
     getOutreachTotals("KANTH"),
     getOutreachTotals("SHAKU"),
   ]);
@@ -39,18 +41,29 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      <KpiCards kpis={kpis} />
+      <Card className="bg-gradient-to-br from-primary/5 to-transparent">
+        <CardContent className="py-1">
+          <NarrativeSummary kpis={kpis} account={account} />
+        </CardContent>
+      </Card>
+
+      <HeroStats kpis={kpis} />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle>Outreach Funnel</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              {account === "ALL" ? "Dr. Kanth + Shaku combined" : "Numbers you entered in Edit Outreach Numbers"}
-            </p>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Your Funnel, at a Glance</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {account === "ALL" ? "Dr. Kanth + Shaku combined" : "From Edit Outreach Numbers"}
+              </p>
+            </div>
+            <LinkButton href="/analytics" variant="ghost" size="sm" className="text-muted-foreground gap-1.5">
+              <BarChart3 className="h-3.5 w-3.5" /> Full breakdown
+            </LinkButton>
           </CardHeader>
           <CardContent>
-            <Funnel items={funnelItems} />
+            <SimpleFunnelChart data={funnelData} />
           </CardContent>
         </Card>
 
@@ -61,8 +74,8 @@ export default async function DashboardPage({
           <CardContent className="text-sm text-muted-foreground space-y-3">
             <p>
               Use <span className="font-medium text-foreground">Edit Outreach Numbers</span> to update bulk counts
-              (requests sent, connected, conversations, replies, deals) — the funnel and KPI cards read straight from
-              those.
+              (requests sent, connected, conversations, replies, deals) — the funnel and stats above read straight
+              from those.
             </p>
             <p>
               Use <span className="font-medium text-foreground">Add Lead</span> only for people you want full CRM

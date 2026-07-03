@@ -33,7 +33,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/proposals", label: "Proposals", icon: FileText, ready: false },
   { href: "/contracts", label: "Contracts", icon: FileSignature, ready: false },
   { href: "/comparison", label: "Account Comparison", icon: Scale, ready: false },
-  { href: "/analytics", label: "Analytics", icon: BarChart3, ready: false },
+  { href: "/analytics", label: "Analytics", icon: BarChart3, ready: true },
   { href: "/productivity", label: "Productivity", icon: Gauge, ready: false },
   { href: "/tasks", label: "Tasks", icon: ListChecks, ready: false },
 ];

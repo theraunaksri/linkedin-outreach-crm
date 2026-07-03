@@ -93,6 +93,20 @@ export async function getFunnelMetrics(account: AccountFilter = "ALL") {
   }));
 }
 
+// A rolled-up, 6-stage version of the funnel for the dashboard home page —
+// the full 19-stage breakdown lives on /analytics for anyone who wants it.
+export async function getSimpleFunnel(account: AccountFilter = "ALL") {
+  const reported = await getReportedTotals(account);
+  return [
+    { name: "Reached Out", value: reported.requestsSent, fill: "#3b82f6" },
+    { name: "Connected", value: reported.connectionsAccepted, fill: "#6366f1" },
+    { name: "Engaged", value: reported.conversationStarted + reported.engaged + reported.interested, fill: "#a855f7" },
+    { name: "Replied", value: reported.repliesReceived, fill: "#06b6d4" },
+    { name: "Meetings Held", value: reported.callsCompleted, fill: "#f59e0b" },
+    { name: "Deals Won", value: reported.wonDeals, fill: "#22c55e" },
+  ];
+}
+
 export async function getKpis(account: AccountFilter = "ALL") {
   const leads = await prisma.lead.findMany({ where: accountWhere(account) });
   const reported = await getReportedTotals(account);

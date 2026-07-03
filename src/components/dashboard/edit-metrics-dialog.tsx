@@ -127,7 +127,7 @@ export function EditMetricsDialog({
                   <Input
                     type="number"
                     min={0}
-                    value={current[f.key]}
+                    value={current[f.key] ?? 0}
                     onChange={(e) => setField(f.key, e.target.value)}
                   />
                 </div>
