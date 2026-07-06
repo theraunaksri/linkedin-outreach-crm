@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { assertEditUnlocked } from "@/lib/auth";
 import type { LinkedInAccount, PipelineStage, Priority, LeadStatus, ProposalStatus, ContractStatus } from "@/generated/prisma/enums";
 
 export type LeadInput = {
@@ -40,6 +41,7 @@ function toDate(v?: string | null) {
 }
 
 export async function createLead(input: LeadInput) {
+  await assertEditUnlocked();
   if (!input.name?.trim()) {
     throw new Error("Lead name is required");
   }
@@ -81,6 +83,7 @@ export async function createLead(input: LeadInput) {
 }
 
 export async function updateLead(id: string, input: LeadInput) {
+  await assertEditUnlocked();
   if (!input.name?.trim()) {
     throw new Error("Lead name is required");
   }
@@ -123,6 +126,7 @@ export async function updateLead(id: string, input: LeadInput) {
 }
 
 export async function deleteLead(id: string) {
+  await assertEditUnlocked();
   await prisma.lead.delete({ where: { id } });
   revalidatePath("/");
   revalidatePath("/leads");
@@ -130,6 +134,7 @@ export async function deleteLead(id: string) {
 }
 
 export async function bulkDeleteLeads(ids: string[]) {
+  await assertEditUnlocked();
   await prisma.lead.deleteMany({ where: { id: { in: ids } } });
   revalidatePath("/");
   revalidatePath("/leads");
@@ -137,6 +142,7 @@ export async function bulkDeleteLeads(ids: string[]) {
 }
 
 export async function duplicateLead(id: string) {
+  await assertEditUnlocked();
   const lead = await prisma.lead.findUnique({ where: { id } });
   if (!lead) throw new Error("Lead not found");
 
@@ -154,6 +160,7 @@ export async function duplicateLead(id: string) {
 }
 
 export async function updateLeadStage(id: string, stage: PipelineStage) {
+  await assertEditUnlocked();
   await prisma.lead.update({
     where: { id },
     data: { currentStage: stage, lastActivityDate: new Date() },
@@ -164,6 +171,7 @@ export async function updateLeadStage(id: string, stage: PipelineStage) {
 }
 
 export async function bulkUpdateStage(ids: string[], stage: PipelineStage) {
+  await assertEditUnlocked();
   await prisma.lead.updateMany({
     where: { id: { in: ids } },
     data: { currentStage: stage, lastActivityDate: new Date() },
@@ -174,6 +182,7 @@ export async function bulkUpdateStage(ids: string[], stage: PipelineStage) {
 }
 
 export async function addLeadNote(leadId: string, body: string, author?: string) {
+  await assertEditUnlocked();
   if (!body.trim()) return;
   await prisma.note.create({
     data: { leadId, body: body.trim(), author: author || null },

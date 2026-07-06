@@ -5,9 +5,10 @@ import { Search, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { UnlockEditing } from "@/components/layout/unlock-editing";
 import { useRouter } from "next/navigation";
 
-export function Topbar() {
+export function Topbar({ editUnlocked }: { editUnlocked: boolean }) {
   const router = useRouter();
   const [q, setQ] = React.useState("");
 
@@ -33,6 +34,7 @@ export function Topbar() {
         </div>
       </form>
       <div className="flex-1" />
+      <UnlockEditing editUnlocked={editUnlocked} />
       <ThemeToggle />
     </header>
   );

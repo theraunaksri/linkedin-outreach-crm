@@ -1,4 +1,5 @@
 import { getLeads } from "@/lib/queries";
+import { isEditUnlocked } from "@/lib/auth";
 import { LeadsTable } from "@/components/leads/leads-table";
 
 export default async function LeadsPage({
@@ -7,7 +8,7 @@ export default async function LeadsPage({
   searchParams: Promise<{ q?: string; stage?: string; account?: string }>;
 }) {
   const params = await searchParams;
-  const leads = await getLeads("ALL");
+  const [leads, canEdit] = await Promise.all([getLeads("ALL"), isEditUnlocked()]);
 
   return (
     <div className="space-y-4">
@@ -22,6 +23,7 @@ export default async function LeadsPage({
         initialQuery={params.q}
         initialStage={params.stage}
         initialAccount={params.account}
+        canEdit={canEdit}
       />
     </div>
   );

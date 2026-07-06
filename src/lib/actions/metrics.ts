@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { assertEditUnlocked } from "@/lib/auth";
 import type { LinkedInAccount } from "@/generated/prisma/enums";
 
 export type OutreachTotalsInput = {
@@ -31,6 +32,7 @@ export type OutreachTotalsInput = {
 const TOTALS_LABEL = "All-Time Totals";
 
 export async function upsertOutreachTotals(account: LinkedInAccount, data: OutreachTotalsInput) {
+  await assertEditUnlocked();
   await prisma.outreachMetric.upsert({
     where: { account_periodLabel: { account, periodLabel: TOTALS_LABEL } },
     update: data,

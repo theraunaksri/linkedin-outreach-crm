@@ -85,11 +85,13 @@ export function LeadsTable({
   initialQuery,
   initialStage,
   initialAccount,
+  canEdit,
 }: {
   leads: LeadModel[];
   initialQuery?: string;
   initialStage?: string;
   initialAccount?: string;
+  canEdit: boolean;
 }) {
   const router = useRouter();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -332,20 +334,24 @@ export function LeadsTable({
             </SelectContent>
           </Select>
 
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="h-4 w-4" /> Import
-          </Button>
-          <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={onImportFile} />
+          {canEdit && (
+            <>
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-4 w-4" /> Import
+              </Button>
+              <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={onImportFile} />
+            </>
+          )}
 
           <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCsv}>
             <Download className="h-4 w-4" /> Export
           </Button>
 
-          <LeadFormDialog mode="create" defaultAccount={account === "ALL" ? "KANTH" : account} />
+          {canEdit && <LeadFormDialog mode="create" defaultAccount={account === "ALL" ? "KANTH" : account} />}
         </div>
       </div>
 
-      {selected.size > 0 && (
+      {canEdit && selected.size > 0 && (
         <div className="flex items-center justify-between rounded-lg border bg-muted/50 px-3 py-2">
           <span className="text-sm font-medium">{selected.size} selected</span>
           <div className="flex gap-2">
@@ -363,9 +369,11 @@ export function LeadsTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10">
-                <Checkbox checked={allPageSelected} onCheckedChange={toggleAll} />
-              </TableHead>
+              {canEdit && (
+                <TableHead className="w-10">
+                  <Checkbox checked={allPageSelected} onCheckedChange={toggleAll} />
+                </TableHead>
+              )}
               <TableHead>Lead</TableHead>
               <TableHead>Stage</TableHead>
               <TableHead>Priority</TableHead>
@@ -374,22 +382,29 @@ export function LeadsTable({
               <TableHead>Next Follow-up</TableHead>
               <TableHead>Probability</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-10" />
+              {canEdit && <TableHead className="w-10" />}
             </TableRow>
           </TableHeader>
           <TableBody>
             {pageItems.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} className="h-32 text-center text-sm text-muted-foreground">
-                  No leads match these filters. Click <span className="font-medium text-foreground">Add Lead</span> to create one.
+                <TableCell colSpan={canEdit ? 10 : 8} className="h-32 text-center text-sm text-muted-foreground">
+                  No leads match these filters.
+                  {canEdit && (
+                    <>
+                      {" "}Click <span className="font-medium text-foreground">Add Lead</span> to create one.
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             )}
             {pageItems.map((lead) => (
               <TableRow key={lead.id} data-state={selected.has(lead.id) ? "selected" : undefined}>
-                <TableCell>
-                  <Checkbox checked={selected.has(lead.id)} onCheckedChange={() => toggleRow(lead.id)} />
-                </TableCell>
+                {canEdit && (
+                  <TableCell>
+                    <Checkbox checked={selected.has(lead.id)} onCheckedChange={() => toggleRow(lead.id)} />
+                  </TableCell>
+                )}
                 <TableCell>
                   <div className="font-medium">{lead.name}</div>
                   <div className="text-xs text-muted-foreground">
@@ -421,9 +436,11 @@ export function LeadsTable({
                     {STATUS_LABELS[lead.status]}
                   </Badge>
                 </TableCell>
-                <TableCell>
-                  <RowActions lead={lead} />
-                </TableCell>
+                {canEdit && (
+                  <TableCell>
+                    <RowActions lead={lead} />
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>

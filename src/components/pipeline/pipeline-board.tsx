@@ -21,8 +21,8 @@ import { Card } from "@/components/ui/card";
 import type { LeadModel } from "@/generated/prisma/models";
 import type { PipelineStage } from "@/generated/prisma/enums";
 
-function LeadCard({ lead, dragging }: { lead: LeadModel; dragging?: boolean }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: lead.id });
+function LeadCard({ lead, dragging, canEdit }: { lead: LeadModel; dragging?: boolean; canEdit?: boolean }) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: lead.id, disabled: !canEdit });
   const style: React.CSSProperties = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 50 }
     : {};
@@ -31,9 +31,9 @@ function LeadCard({ lead, dragging }: { lead: LeadModel; dragging?: boolean }) {
     <Card
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
-      className={`p-3 gap-1.5 cursor-grab active:cursor-grabbing touch-none ${dragging ? "opacity-40" : ""}`}
+      {...(canEdit ? listeners : {})}
+      {...(canEdit ? attributes : {})}
+      className={`p-3 gap-1.5 touch-none ${canEdit ? "cursor-grab active:cursor-grabbing" : ""} ${dragging ? "opacity-40" : ""}`}
     >
       <div className="text-sm font-medium leading-tight">{lead.name}</div>
       <div className="text-xs text-muted-foreground">{lead.companyName || "—"}</div>
@@ -47,8 +47,18 @@ function LeadCard({ lead, dragging }: { lead: LeadModel; dragging?: boolean }) {
   );
 }
 
-function Column({ stage, label, leads }: { stage: PipelineStage; label: string; leads: LeadModel[] }) {
-  const { setNodeRef, isOver } = useDroppable({ id: stage });
+function Column({
+  stage,
+  label,
+  leads,
+  canEdit,
+}: {
+  stage: PipelineStage;
+  label: string;
+  leads: LeadModel[];
+  canEdit: boolean;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: stage, disabled: !canEdit });
 
   return (
     <div className="flex w-72 shrink-0 flex-col rounded-lg border bg-muted/30">
@@ -61,7 +71,7 @@ function Column({ stage, label, leads }: { stage: PipelineStage; label: string; 
         className={`flex-1 space-y-2 p-2 min-h-40 overflow-y-auto transition-colors ${isOver ? "bg-accent/50" : ""}`}
       >
         {leads.map((lead) => (
-          <LeadCard key={lead.id} lead={lead} />
+          <LeadCard key={lead.id} lead={lead} canEdit={canEdit} />
         ))}
         {leads.length === 0 && (
           <div className="text-xs text-muted-foreground text-center py-6">No leads</div>
@@ -71,7 +81,7 @@ function Column({ stage, label, leads }: { stage: PipelineStage; label: string; 
   );
 }
 
-export function PipelineBoard({ leads }: { leads: LeadModel[] }) {
+export function PipelineBoard({ leads, canEdit }: { leads: LeadModel[]; canEdit: boolean }) {
   const router = useRouter();
   const [items, setItems] = React.useState(leads);
   const [activeId, setActiveId] = React.useState<string | null>(null);
@@ -115,10 +125,11 @@ export function PipelineBoard({ leads }: { leads: LeadModel[] }) {
             stage={s.value}
             label={s.label}
             leads={items.filter((l) => l.currentStage === s.value)}
+            canEdit={canEdit}
           />
         ))}
       </div>
-      <DragOverlay>{activeLead ? <LeadCard lead={activeLead} dragging /> : null}</DragOverlay>
+      <DragOverlay>{activeLead ? <LeadCard lead={activeLead} dragging canEdit={canEdit} /> : null}</DragOverlay>
     </DndContext>
   );
 }
