@@ -3,11 +3,18 @@ import type { NextRequest } from "next/server";
 import { VIEW_COOKIE, tokenFor } from "@/lib/auth";
 
 export function proxy(req: NextRequest) {
-  const viewPassword = process.env.OPIKA_VIEW_PASSWORD;
-  if (!viewPassword) return NextResponse.next(); // no gate configured — leave open
-
   const { pathname } = req.nextUrl;
   if (pathname.startsWith("/login")) return NextResponse.next();
+
+  const viewPassword = process.env.OPIKA_VIEW_PASSWORD;
+  // Fail closed: a missing password must block access, not silently expose
+  // the whole app. /login renders a "not configured" message in this case.
+  if (!viewPassword) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("unconfigured", "1");
+    return NextResponse.redirect(url);
+  }
 
   const cookie = req.cookies.get(VIEW_COOKIE)?.value;
   if (cookie === tokenFor(viewPassword)) return NextResponse.next();

@@ -2,14 +2,31 @@ import { loginView } from "@/lib/actions/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Link2 } from "lucide-react";
+import { Link2, ShieldAlert } from "lucide-react";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; unconfigured?: string }>;
 }) {
   const params = await searchParams;
+
+  if (params.unconfigured) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
+        <div className="w-full max-w-sm rounded-2xl border bg-card p-8 shadow-sm text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10 text-destructive mb-3 mx-auto">
+            <ShieldAlert className="h-5 w-5" />
+          </div>
+          <h1 className="text-lg font-semibold">Access Not Configured</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            <code className="text-xs bg-muted px-1 py-0.5 rounded">OPIKA_VIEW_PASSWORD</code> isn&apos;t set in this
+            environment yet, so the dashboard is locked until it is. Add it under Environment Variables and redeploy.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
