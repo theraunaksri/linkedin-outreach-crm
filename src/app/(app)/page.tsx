@@ -1,7 +1,8 @@
-import { getKpis, getSimpleFunnel, getOutreachTotals, type AccountFilter } from "@/lib/queries";
+import { getKpis, getSimpleFunnel, getOutreachTotals, getMonthlyMeetings, type AccountFilter } from "@/lib/queries";
 import { isEditUnlocked } from "@/lib/auth";
 import { HeroStats } from "@/components/dashboard/hero-stats";
 import { SimpleFunnelChart } from "@/components/dashboard/simple-funnel-chart";
+import { MonthlyMeetings } from "@/components/dashboard/monthly-meetings";
 import { AccountTabs } from "@/components/dashboard/account-tabs";
 import { EditMetricsDialog } from "@/components/dashboard/edit-metrics-dialog";
 import { LeadFormDialog } from "@/components/leads/lead-form-dialog";
@@ -15,11 +16,12 @@ export default async function DashboardPage({
   const params = await searchParams;
   const account = (params.account === "KANTH" || params.account === "SHAKU" ? params.account : "ALL") as AccountFilter;
 
-  const [kpis, kanthTotals, shakuTotals, canEdit] = await Promise.all([
+  const [kpis, kanthTotals, shakuTotals, canEdit, monthlyMeetings] = await Promise.all([
     getKpis(account),
     getOutreachTotals("KANTH"),
     getOutreachTotals("SHAKU"),
     isEditUnlocked(),
+    getMonthlyMeetings(account),
   ]);
   const funnelData = getSimpleFunnel(kpis);
 
@@ -57,6 +59,8 @@ export default async function DashboardPage({
           <SimpleFunnelChart data={funnelData} />
         </CardContent>
       </Card>
+
+      <MonthlyMeetings months={monthlyMeetings} />
     </div>
   );
 }

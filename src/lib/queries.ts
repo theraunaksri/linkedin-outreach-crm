@@ -170,6 +170,30 @@ export async function getKpis(account: AccountFilter = "ALL") {
   };
 }
 
+// Named people whose meeting actually happened (discoveryCompletedAt set),
+// grouped by calendar month — "who, and how many, this month vs last."
+export async function getMonthlyMeetings(account: AccountFilter = "ALL") {
+  const leads = await prisma.lead.findMany({
+    where: { ...accountWhere(account), discoveryCompletedAt: { not: null } },
+    select: { name: true, companyName: true, discoveryCompletedAt: true },
+    orderBy: { discoveryCompletedAt: "asc" },
+  });
+
+  const groups = new Map<string, { monthLabel: string; people: { name: string; companyName: string | null; date: Date }[] }>();
+
+  for (const lead of leads) {
+    const date = lead.discoveryCompletedAt!;
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const monthLabel = date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    if (!groups.has(key)) groups.set(key, { monthLabel, people: [] });
+    groups.get(key)!.people.push({ name: lead.name, companyName: lead.companyName, date });
+  }
+
+  return [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, group]) => ({ key, ...group, count: group.people.length }));
+}
+
 export async function getAccountComparison() {
   const [kanth, shaku] = await Promise.all([getKpis("KANTH"), getKpis("SHAKU")]);
   return { KANTH: kanth, SHAKU: shaku };
