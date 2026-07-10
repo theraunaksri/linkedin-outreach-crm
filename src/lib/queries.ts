@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import type { LinkedInAccount } from "@/generated/prisma/enums";
-import { FUNNEL_METRIC_STAGES } from "@/lib/constants";
 
 export type AccountFilter = LinkedInAccount | "ALL";
 
@@ -85,24 +84,17 @@ async function getReportedTotals(account: AccountFilter): Promise<MetricTotals> 
   return sumMetricRows(metrics);
 }
 
-export async function getFunnelMetrics(account: AccountFilter = "ALL") {
-  const reported = await getReportedTotals(account);
-  return FUNNEL_METRIC_STAGES.map((stage) => ({
-    label: stage.label,
-    value: reported[stage.key],
-  }));
-}
-
-// A rolled-up, 5-stage version of the funnel for the dashboard home page —
-// the full 19-stage breakdown lives on /analytics for anyone who wants it.
-export async function getSimpleFunnel(account: AccountFilter = "ALL") {
-  const reported = await getReportedTotals(account);
+// A rolled-up funnel for the dashboard home page, derived from the same
+// Kpis object as the hero stat cards so the two never disagree. Deals/won
+// stages are intentionally left out for now — not this month's goal, and
+// the team hasn't reached that part of the pipeline yet.
+export function getSimpleFunnel(kpis: Awaited<ReturnType<typeof getKpis>>) {
   return [
-    { name: "Reached Out", value: reported.requestsSent, fill: "#3b82f6" },
-    { name: "Connected", value: reported.connectionsAccepted, fill: "#6366f1" },
-    { name: "Replied", value: reported.repliesReceived, fill: "#06b6d4" },
-    { name: "Meetings Held", value: reported.callsCompleted, fill: "#f59e0b" },
-    { name: "Deals Won", value: reported.wonDeals, fill: "#22c55e" },
+    { name: "Connection Request Sent", value: kpis.connectionRequestsSent, fill: "#3b82f6" },
+    { name: "Connected", value: kpis.acceptedConnections, fill: "#6366f1" },
+    { name: "Replied", value: kpis.repliesReceived, fill: "#06b6d4" },
+    { name: "Meetings Scheduled", value: kpis.discoveryScheduled, fill: "#f97316" },
+    { name: "Meetings Held", value: kpis.discoveryCompleted, fill: "#f59e0b" },
   ];
 }
 

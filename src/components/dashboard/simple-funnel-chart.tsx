@@ -1,7 +1,3 @@
-"use client";
-
-import { ResponsiveContainer, FunnelChart, Funnel, LabelList, Tooltip, Cell } from "recharts";
-
 type FunnelDatum = { name: string; value: number; fill: string };
 
 export function SimpleFunnelChart({ data }: { data: FunnelDatum[] }) {
@@ -16,18 +12,29 @@ export function SimpleFunnelChart({ data }: { data: FunnelDatum[] }) {
     );
   }
 
+  const max = Math.max(1, ...data.map((d) => d.value));
+
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <FunnelChart>
-        <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", fontSize: 13 }} />
-        <Funnel dataKey="value" data={data} isAnimationActive nameKey="name">
-          {data.map((entry) => (
-            <Cell key={entry.name} fill={entry.fill} />
-          ))}
-          <LabelList position="right" dataKey="name" fill="var(--foreground)" stroke="none" fontSize={13} offset={12} />
-          <LabelList position="center" dataKey="value" fill="#fff" stroke="none" fontSize={14} fontWeight={700} />
-        </Funnel>
-      </FunnelChart>
-    </ResponsiveContainer>
+    <div className="space-y-3 py-2">
+      {data.map((d) => {
+        const pct = Math.max((d.value / max) * 100, d.value > 0 ? 3 : 0);
+        return (
+          <div key={d.name} className="flex items-center gap-4">
+            <div className="w-44 shrink-0 text-sm font-medium text-foreground/80 text-right">{d.name}</div>
+            <div className="flex-1 h-8 rounded-lg bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-lg flex items-center justify-end px-3 transition-all"
+                style={{ width: `${pct}%`, backgroundColor: d.fill }}
+              >
+                {pct > 15 && <span className="text-sm font-semibold text-white tabular-nums">{d.value}</span>}
+              </div>
+            </div>
+            {pct <= 15 && (
+              <span className="w-8 shrink-0 text-sm font-semibold tabular-nums">{d.value}</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }

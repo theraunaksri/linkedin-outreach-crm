@@ -1,5 +1,5 @@
 import type { getKpis } from "@/lib/queries";
-import { Send, UserCheck, MessageCircle, CalendarCheck, Trophy, Users } from "lucide-react";
+import { Send, UserCheck, MessageCircle, CalendarClock, CalendarCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,9 +13,8 @@ const COLORS = {
   blue: "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400",
   indigo: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400",
   purple: "bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400",
+  orange: "bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400",
   amber: "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400",
-  emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400",
-  slate: "bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300",
 };
 
 function HeroCard({
@@ -47,8 +46,8 @@ function HeroCard({
 
 export function HeroStats({ kpis }: { kpis: Kpis }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-      <HeroCard icon={Send} color="blue" label="Reached Out" value={kpis.connectionRequestsSent} />
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+      <HeroCard icon={Send} color="blue" label="Connection Request Sent" value={kpis.connectionRequestsSent} />
       <HeroCard
         icon={UserCheck}
         color="indigo"
@@ -63,15 +62,8 @@ export function HeroStats({ kpis }: { kpis: Kpis }) {
         value={kpis.repliesReceived}
         sub={`${fmtPct(kpis.responseRate)} response rate`}
       />
+      <HeroCard icon={CalendarClock} color="orange" label="Meetings Scheduled" value={kpis.discoveryScheduled} />
       <HeroCard icon={CalendarCheck} color="amber" label="Meetings Held" value={kpis.discoveryCompleted} />
-      <HeroCard
-        icon={Trophy}
-        color="emerald"
-        label="Deals Won"
-        value={kpis.wonDeals}
-        sub={`${fmtPct(kpis.conversionRate)} conversion`}
-      />
-      <HeroCard icon={Users} color="slate" label="Named Leads" value={kpis.totalLeads} sub="Added to CRM" />
     </div>
   );
 }

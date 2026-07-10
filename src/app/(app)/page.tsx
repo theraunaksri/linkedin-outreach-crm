@@ -1,4 +1,3 @@
-import { BarChart3 } from "lucide-react";
 import { getKpis, getSimpleFunnel, getOutreachTotals, type AccountFilter } from "@/lib/queries";
 import { isEditUnlocked } from "@/lib/auth";
 import { HeroStats } from "@/components/dashboard/hero-stats";
@@ -7,7 +6,6 @@ import { AccountTabs } from "@/components/dashboard/account-tabs";
 import { EditMetricsDialog } from "@/components/dashboard/edit-metrics-dialog";
 import { LeadFormDialog } from "@/components/leads/lead-form-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LinkButton } from "@/components/ui/link-button";
 
 export default async function DashboardPage({
   searchParams,
@@ -17,13 +15,13 @@ export default async function DashboardPage({
   const params = await searchParams;
   const account = (params.account === "KANTH" || params.account === "SHAKU" ? params.account : "ALL") as AccountFilter;
 
-  const [kpis, funnelData, kanthTotals, shakuTotals, canEdit] = await Promise.all([
+  const [kpis, kanthTotals, shakuTotals, canEdit] = await Promise.all([
     getKpis(account),
-    getSimpleFunnel(account),
     getOutreachTotals("KANTH"),
     getOutreachTotals("SHAKU"),
     isEditUnlocked(),
   ]);
+  const funnelData = getSimpleFunnel(kpis);
 
   return (
     <div className="space-y-6">
@@ -49,16 +47,11 @@ export default async function DashboardPage({
       <HeroStats kpis={kpis} />
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Your Funnel, at a Glance</CardTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {account === "ALL" ? "Dr. Kanth + Shaku combined" : ""}
-            </p>
-          </div>
-          <LinkButton href="/analytics" variant="ghost" size="sm" className="text-muted-foreground gap-1.5">
-            <BarChart3 className="h-3.5 w-3.5" /> Full breakdown
-          </LinkButton>
+        <CardHeader>
+          <CardTitle>Your Funnel, at a Glance</CardTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {account === "ALL" ? "Dr. Kanth + Shaku combined" : ""}
+          </p>
         </CardHeader>
         <CardContent>
           <SimpleFunnelChart data={funnelData} />
