@@ -29,6 +29,8 @@ export type LeadInput = {
   probabilityOfClosing?: number | null;
   meetingScheduled?: boolean;
   meetingDate?: string | null;
+  discoveryScheduledAt?: string | null;
+  discoveryCompletedAt?: string | null;
   nextFollowupDate?: string | null;
   lastActivityDate?: string | null;
   notes?: string | null;
@@ -71,6 +73,8 @@ export async function createLead(input: LeadInput) {
       probabilityOfClosing: input.probabilityOfClosing ?? null,
       meetingScheduled: input.meetingScheduled ?? false,
       meetingDate: toDate(input.meetingDate),
+      discoveryScheduledAt: toDate(input.discoveryScheduledAt),
+      discoveryCompletedAt: toDate(input.discoveryCompletedAt),
       nextFollowupDate: toDate(input.nextFollowupDate),
       lastActivityDate: toDate(input.lastActivityDate) ?? new Date(),
       notes: input.notes || null,
@@ -114,6 +118,8 @@ export async function updateLead(id: string, input: LeadInput) {
       probabilityOfClosing: input.probabilityOfClosing ?? null,
       meetingScheduled: input.meetingScheduled ?? false,
       meetingDate: toDate(input.meetingDate),
+      discoveryScheduledAt: toDate(input.discoveryScheduledAt),
+      discoveryCompletedAt: toDate(input.discoveryCompletedAt),
       nextFollowupDate: toDate(input.nextFollowupDate),
       lastActivityDate: toDate(input.lastActivityDate),
       notes: input.notes || null,

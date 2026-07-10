@@ -44,6 +44,8 @@ const emptyForm: LeadInput = {
   probabilityOfClosing: null,
   meetingScheduled: false,
   meetingDate: "",
+  discoveryScheduledAt: "",
+  discoveryCompletedAt: "",
   nextFollowupDate: "",
   lastActivityDate: "",
   notes: "",
@@ -81,6 +83,8 @@ function leadToForm(lead: LeadModel): LeadInput {
     probabilityOfClosing: lead.probabilityOfClosing,
     meetingScheduled: lead.meetingScheduled,
     meetingDate: toDateInput(lead.meetingDate),
+    discoveryScheduledAt: toDateInput(lead.discoveryScheduledAt),
+    discoveryCompletedAt: toDateInput(lead.discoveryCompletedAt),
     nextFollowupDate: toDateInput(lead.nextFollowupDate),
     lastActivityDate: toDateInput(lead.lastActivityDate),
     notes: lead.notes ?? "",
@@ -314,6 +318,23 @@ export function LeadFormDialog({
               <div>
                 <Label className="mb-1.5">Meeting Date</Label>
                 <Input type="date" value={form.meetingDate ?? ""} onChange={(e) => set("meetingDate", e.target.value)} />
+              </div>
+
+              <div>
+                <Label className="mb-1.5">Meeting Scheduled Date</Label>
+                <Input
+                  type="date"
+                  value={form.discoveryScheduledAt ?? ""}
+                  onChange={(e) => set("discoveryScheduledAt", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="mb-1.5">Meeting Held Date</Label>
+                <Input
+                  type="date"
+                  value={form.discoveryCompletedAt ?? ""}
+                  onChange={(e) => set("discoveryCompletedAt", e.target.value)}
+                />
               </div>
 
               <div>

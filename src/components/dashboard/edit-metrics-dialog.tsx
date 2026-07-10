@@ -34,8 +34,6 @@ const FIELDS: { key: keyof OutreachTotalsInput; label: string }[] = [
   { key: "repliesReceived", label: "Replies Received" },
   { key: "positiveReplies", label: "Positive Replies" },
   { key: "negativeReplies", label: "Negative Replies" },
-  { key: "callsScheduled", label: "Discovery Calls Scheduled" },
-  { key: "callsCompleted", label: "Discovery Calls Completed" },
   { key: "prototypeShared", label: "Prototype Shared" },
   { key: "proposalSent", label: "Proposal Sent" },
   { key: "negotiation", label: "Negotiation" },

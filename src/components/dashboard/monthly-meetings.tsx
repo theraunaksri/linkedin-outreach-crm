@@ -1,10 +1,19 @@
+"use client";
+
+import * as React from "react";
+import { Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { LeadFormDialog } from "@/components/leads/lead-form-dialog";
 import type { getMonthlyMeetings } from "@/lib/queries";
+import type { LeadModel } from "@/generated/prisma/models";
 
 type MonthlyMeetings = Awaited<ReturnType<typeof getMonthlyMeetings>>;
 
-export function MonthlyMeetings({ months }: { months: MonthlyMeetings }) {
+export function MonthlyMeetings({ months, canEdit }: { months: MonthlyMeetings; canEdit: boolean }) {
+  const [editingLead, setEditingLead] = React.useState<LeadModel | null>(null);
+
   if (months.length === 0) {
     return (
       <Card>
@@ -32,14 +41,26 @@ export function MonthlyMeetings({ months }: { months: MonthlyMeetings }) {
               <Badge variant="secondary">{month.count} meeting{month.count === 1 ? "" : "s"}</Badge>
             </div>
             <ul className="space-y-2">
-              {month.people.map((p, i) => (
-                <li key={i} className="flex items-center justify-between text-sm">
-                  <span className="font-medium">
-                    {p.name}
-                    {p.companyName && <span className="text-muted-foreground font-normal"> · {p.companyName}</span>}
+              {month.people.map((p) => (
+                <li key={p.lead.id} className="flex items-center justify-between text-sm gap-2">
+                  <span className="font-medium truncate">
+                    {p.lead.name}
+                    {p.lead.companyName && <span className="text-muted-foreground font-normal"> · {p.lead.companyName}</span>}
                   </span>
-                  <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                    {p.date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  <span className="flex items-center gap-1 shrink-0">
+                    <span className="text-xs text-muted-foreground">
+                      {p.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
+                    {canEdit && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="h-6 w-6"
+                        onClick={() => setEditingLead(p.lead)}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    )}
                   </span>
                 </li>
               ))}
@@ -47,6 +68,16 @@ export function MonthlyMeetings({ months }: { months: MonthlyMeetings }) {
           </div>
         ))}
       </CardContent>
+
+      {editingLead && (
+        <LeadFormDialog
+          mode="edit"
+          lead={editingLead}
+          trigger={null}
+          open={!!editingLead}
+          onOpenChange={(open) => !open && setEditingLead(null)}
+        />
+      )}
     </Card>
   );
 }

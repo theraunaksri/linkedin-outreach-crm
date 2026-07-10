@@ -60,7 +60,7 @@ export default async function DashboardPage({
         </CardContent>
       </Card>
 
-      <MonthlyMeetings months={monthlyMeetings} />
+      <MonthlyMeetings months={monthlyMeetings} canEdit={canEdit} />
     </div>
   );
 }

@@ -114,8 +114,12 @@ export async function getKpis(account: AccountFilter = "ALL") {
   const positiveReplies = leads.filter((l) => l.replySentiment === "positive").length + reported.positiveReplies;
   const negativeReplies = leads.filter((l) => l.replySentiment === "negative").length + reported.negativeReplies;
 
-  const discoveryScheduled = leads.filter((l) => l.discoveryScheduledAt).length + reported.callsScheduled;
-  const discoveryCompleted = leads.filter((l) => l.discoveryCompletedAt).length + reported.callsCompleted;
+  // Meetings Scheduled/Held are sourced purely from named lead records (each
+  // backed by a real person + editable date), not blended with the legacy
+  // manual aggregate — so the number on screen always matches what you can
+  // edit in the Leads list.
+  const discoveryScheduled = leads.filter((l) => l.discoveryScheduledAt).length;
+  const discoveryCompleted = leads.filter((l) => l.discoveryCompletedAt).length;
   const opportunities =
     leads.filter((l) =>
       ["INTERESTED", "DISCOVERY_SCHEDULED", "DISCOVERY_COMPLETED", "PROTOTYPE_READY", "PROPOSAL_SENT", "NEGOTIATION", "CONTRACT_SENT", "CUSTOMER"].includes(
@@ -132,8 +136,8 @@ export async function getKpis(account: AccountFilter = "ALL") {
   const wonDeals = leads.filter((l) => l.status === "WON").length + reported.wonDeals;
   const lostDeals = leads.filter((l) => l.status === "LOST").length + reported.lostDeals;
 
-  const callsScheduled = leads.filter((l) => l.discoveryScheduledAt || l.demoScheduledAt).length + reported.callsScheduled;
-  const callsCompleted = leads.filter((l) => l.discoveryCompletedAt || l.demoCompletedAt).length + reported.callsCompleted;
+  const callsScheduled = leads.filter((l) => l.discoveryScheduledAt || l.demoScheduledAt).length;
+  const callsCompleted = leads.filter((l) => l.discoveryCompletedAt || l.demoCompletedAt).length;
 
   const acceptanceRate = connectionRequestsSent > 0 ? (acceptedConnections / connectionRequestsSent) * 100 : 0;
   const responseRate = firstMessagesSent > 0 ? (repliesReceived / firstMessagesSent) * 100 : 0;
@@ -175,18 +179,17 @@ export async function getKpis(account: AccountFilter = "ALL") {
 export async function getMonthlyMeetings(account: AccountFilter = "ALL") {
   const leads = await prisma.lead.findMany({
     where: { ...accountWhere(account), discoveryCompletedAt: { not: null } },
-    select: { name: true, companyName: true, discoveryCompletedAt: true },
     orderBy: { discoveryCompletedAt: "asc" },
   });
 
-  const groups = new Map<string, { monthLabel: string; people: { name: string; companyName: string | null; date: Date }[] }>();
+  const groups = new Map<string, { monthLabel: string; people: { lead: (typeof leads)[number]; date: Date }[] }>();
 
   for (const lead of leads) {
     const date = lead.discoveryCompletedAt!;
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     const monthLabel = date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
     if (!groups.has(key)) groups.set(key, { monthLabel, people: [] });
-    groups.get(key)!.people.push({ name: lead.name, companyName: lead.companyName, date });
+    groups.get(key)!.people.push({ lead, date });
   }
 
   return [...groups.entries()]
