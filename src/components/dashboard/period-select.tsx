@@ -10,7 +10,8 @@ export function PeriodSelect({ active, months }: { active: string; months: { val
 
   const options = [{ value: "ALL", label: "All Time" }, ...months];
 
-  function onChange(value: string) {
+  function onChange(value: string | null) {
+    if (!value) return;
     const params = new URLSearchParams(searchParams.toString());
     if (value === "ALL") params.delete("month");
     else params.set("month", value);

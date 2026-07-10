@@ -103,7 +103,8 @@ export function EditMetricsDialog({
     setValues(totalsByPeriod[a]?.[periodLabel] ?? EMPTY);
   }
 
-  function selectPeriod(p: string) {
+  function selectPeriod(p: string | null) {
+    if (!p) return;
     setPeriodLabel(p);
     setValues(totalsByPeriod[account]?.[p] ?? EMPTY);
   }
