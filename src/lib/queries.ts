@@ -3,8 +3,74 @@ import type { LinkedInAccount } from "@/generated/prisma/enums";
 
 export type AccountFilter = LinkedInAccount | "ALL";
 
+// "ALL" (all-time) or a "YYYY-MM" calendar month, e.g. "2026-07".
+export type PeriodFilter = "ALL" | string;
+
 function accountWhere(account: AccountFilter) {
   return account === "ALL" ? {} : { account };
+}
+
+function monthRange(period: string) {
+  const [y, m] = period.split("-").map(Number);
+  return { gte: new Date(y, m - 1, 1), lt: new Date(y, m, 1) };
+}
+
+// True when `date` is set and (for "ALL") exists at all, or (for "YYYY-MM")
+// falls within that calendar month.
+function matchesPeriod(date: Date | null, period: PeriodFilter) {
+  if (!date) return false;
+  if (period === "ALL") return true;
+  const { gte, lt } = monthRange(period);
+  return date >= gte && date < lt;
+}
+
+function monthLabel(period: string) {
+  const { gte } = monthRange(period);
+  return gte.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
+// Months worth offering in the period selector: any month that has actual
+// lead activity or a manually-entered monthly snapshot, plus the current
+// month so there's always somewhere to log today's numbers.
+export async function getAvailableMonths(account: AccountFilter = "ALL") {
+  const [leads, metrics] = await Promise.all([
+    prisma.lead.findMany({
+      where: accountWhere(account),
+      select: {
+        connectionRequestSentAt: true,
+        connectionAcceptedAt: true,
+        firstMessageSentAt: true,
+        replyReceivedAt: true,
+        discoveryScheduledAt: true,
+        discoveryCompletedAt: true,
+      },
+    }),
+    getOutreachMetrics(account),
+  ]);
+
+  const keys = new Set<string>();
+  const now = new Date();
+  keys.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+
+  for (const lead of leads) {
+    for (const date of [
+      lead.connectionRequestSentAt,
+      lead.connectionAcceptedAt,
+      lead.firstMessageSentAt,
+      lead.replyReceivedAt,
+      lead.discoveryScheduledAt,
+      lead.discoveryCompletedAt,
+    ]) {
+      if (date) keys.add(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`);
+    }
+  }
+  for (const m of metrics) {
+    if (/^\d{4}-\d{2}$/.test(m.periodLabel)) keys.add(m.periodLabel);
+  }
+
+  return [...keys]
+    .sort((a, b) => b.localeCompare(a))
+    .map((key) => ({ value: key, label: monthLabel(key) }));
 }
 
 export async function getLeads(account: AccountFilter = "ALL") {
@@ -84,6 +150,14 @@ async function getReportedTotals(account: AccountFilter): Promise<MetricTotals> 
   return sumMetricRows(metrics);
 }
 
+// Manually-entered numbers for one specific "YYYY-MM" month only (no
+// fallback to All-Time Totals — a month with nothing logged is genuinely 0).
+async function getReportedTotalsForPeriod(account: AccountFilter, periodLabel: string): Promise<MetricTotals> {
+  const metrics = await getOutreachMetrics(account);
+  const rows = metrics.filter((m) => m.periodLabel === periodLabel);
+  return rows.length > 0 ? sumMetricRows(rows) : { ...EMPTY_TOTALS };
+}
+
 // A rolled-up funnel for the dashboard home page, derived from the same
 // Kpis object as the hero stat cards so the two never disagree. Deals/won
 // stages are intentionally left out for now — not this month's goal, and
@@ -98,46 +172,54 @@ export function getSimpleFunnel(kpis: Awaited<ReturnType<typeof getKpis>>) {
   ];
 }
 
-export async function getKpis(account: AccountFilter = "ALL") {
+export async function getKpis(account: AccountFilter = "ALL", period: PeriodFilter = "ALL") {
   const leads = await prisma.lead.findMany({ where: accountWhere(account) });
-  const reported = await getReportedTotals(account);
+  const reported = period === "ALL" ? await getReportedTotals(account) : await getReportedTotalsForPeriod(account, period);
+  // The manual aggregate only has all-time or per-month snapshots, never
+  // both — so for a specific month we only add it in if someone actually
+  // logged numbers for that exact month.
+  const includeReported = period === "ALL" || (await getOutreachMetrics(account)).some((m) => m.periodLabel === period);
+  const r = includeReported ? reported : { ...EMPTY_TOTALS };
 
-  const totalLeads = leads.length;
-  const connectionRequestsSent = leads.filter((l) => l.connectionRequestSentAt).length + reported.requestsSent;
-  const acceptedConnections = leads.filter((l) => l.connectionAcceptedAt).length + reported.connectionsAccepted;
+  const totalLeads = period === "ALL" ? leads.length : leads.filter((l) => matchesPeriod(l.createdAt, period)).length;
+  const connectionRequestsSent = leads.filter((l) => matchesPeriod(l.connectionRequestSentAt, period)).length + r.requestsSent;
+  const acceptedConnections = leads.filter((l) => matchesPeriod(l.connectionAcceptedAt, period)).length + r.connectionsAccepted;
   const pendingRequests = Math.max(connectionRequestsSent - acceptedConnections, 0);
-  const firstMessagesSent = leads.filter((l) => l.firstMessageSentAt).length + reported.firstMessagesSent;
-  const firstFollowupsSent = leads.filter((l) => l.firstFollowupAt).length + reported.firstFollowupsSent;
-  const secondFollowupsSent = leads.filter((l) => l.secondFollowupAt).length + reported.secondFollowupsSent;
-  const thirdFollowupsSent = leads.filter((l) => l.thirdFollowupAt).length + reported.thirdFollowupsSent;
-  const repliesReceived = leads.filter((l) => l.replyReceivedAt).length + reported.repliesReceived;
-  const positiveReplies = leads.filter((l) => l.replySentiment === "positive").length + reported.positiveReplies;
-  const negativeReplies = leads.filter((l) => l.replySentiment === "negative").length + reported.negativeReplies;
+  const firstMessagesSent = leads.filter((l) => matchesPeriod(l.firstMessageSentAt, period)).length + r.firstMessagesSent;
+  const firstFollowupsSent = leads.filter((l) => matchesPeriod(l.firstFollowupAt, period)).length + r.firstFollowupsSent;
+  const secondFollowupsSent = leads.filter((l) => matchesPeriod(l.secondFollowupAt, period)).length + r.secondFollowupsSent;
+  const thirdFollowupsSent = leads.filter((l) => matchesPeriod(l.thirdFollowupAt, period)).length + r.thirdFollowupsSent;
+  const repliesReceived = leads.filter((l) => matchesPeriod(l.replyReceivedAt, period)).length + r.repliesReceived;
+  const positiveReplies =
+    leads.filter((l) => matchesPeriod(l.replyReceivedAt, period) && l.replySentiment === "positive").length + r.positiveReplies;
+  const negativeReplies =
+    leads.filter((l) => matchesPeriod(l.replyReceivedAt, period) && l.replySentiment === "negative").length + r.negativeReplies;
 
   // Meetings Scheduled/Held are sourced purely from named lead records (each
   // backed by a real person + editable date), not blended with the legacy
   // manual aggregate — so the number on screen always matches what you can
   // edit in the Leads list.
-  const discoveryScheduled = leads.filter((l) => l.discoveryScheduledAt).length;
-  const discoveryCompleted = leads.filter((l) => l.discoveryCompletedAt).length;
+  const discoveryScheduled = leads.filter((l) => matchesPeriod(l.discoveryScheduledAt, period)).length;
+  const discoveryCompleted = leads.filter((l) => matchesPeriod(l.discoveryCompletedAt, period)).length;
   const opportunities =
-    leads.filter((l) =>
-      ["INTERESTED", "DISCOVERY_SCHEDULED", "DISCOVERY_COMPLETED", "PROTOTYPE_READY", "PROPOSAL_SENT", "NEGOTIATION", "CONTRACT_SENT", "CUSTOMER"].includes(
-        l.currentStage
-      )
-    ).length + reported.interested;
-  const prototypeShared = leads.filter((l) => l.prototypeDeliveredAt).length + reported.prototypeShared;
+    (period === "ALL"
+      ? leads.filter((l) =>
+          ["INTERESTED", "DISCOVERY_SCHEDULED", "DISCOVERY_COMPLETED", "PROTOTYPE_READY", "PROPOSAL_SENT", "NEGOTIATION", "CONTRACT_SENT", "CUSTOMER"].includes(
+            l.currentStage
+          )
+        ).length
+      : 0) + r.interested;
+  const prototypeShared = leads.filter((l) => matchesPeriod(l.prototypeDeliveredAt, period)).length + r.prototypeShared;
   const proposalSent =
-    leads.filter((l) => l.proposalSentAt || l.proposalStatus === "SENT" || l.proposalStatus === "VIEWED" || l.proposalStatus === "APPROVED").length +
-    reported.proposalSent;
-  const negotiation = leads.filter((l) => l.currentStage === "NEGOTIATION").length + reported.negotiation;
-  const contractSent = leads.filter((l) => l.contractSentAt || l.contractStatus === "SENT").length + reported.contractSent;
-  const contractSigned = leads.filter((l) => l.contractStatus === "SIGNED").length + reported.contractSigned;
-  const wonDeals = leads.filter((l) => l.status === "WON").length + reported.wonDeals;
-  const lostDeals = leads.filter((l) => l.status === "LOST").length + reported.lostDeals;
+    leads.filter((l) => matchesPeriod(l.proposalSentAt, period)).length + r.proposalSent;
+  const negotiation = (period === "ALL" ? leads.filter((l) => l.currentStage === "NEGOTIATION").length : 0) + r.negotiation;
+  const contractSent = leads.filter((l) => matchesPeriod(l.contractSentAt, period)).length + r.contractSent;
+  const contractSigned = leads.filter((l) => matchesPeriod(l.contractSignedAt, period)).length + r.contractSigned;
+  const wonDeals = leads.filter((l) => matchesPeriod(l.wonAt, period)).length + r.wonDeals;
+  const lostDeals = leads.filter((l) => matchesPeriod(l.lostAt, period)).length + r.lostDeals;
 
-  const callsScheduled = leads.filter((l) => l.discoveryScheduledAt || l.demoScheduledAt).length;
-  const callsCompleted = leads.filter((l) => l.discoveryCompletedAt || l.demoCompletedAt).length;
+  const callsScheduled = leads.filter((l) => matchesPeriod(l.discoveryScheduledAt, period) || matchesPeriod(l.demoScheduledAt, period)).length;
+  const callsCompleted = leads.filter((l) => matchesPeriod(l.discoveryCompletedAt, period) || matchesPeriod(l.demoCompletedAt, period)).length;
 
   const acceptanceRate = connectionRequestsSent > 0 ? (acceptedConnections / connectionRequestsSent) * 100 : 0;
   const responseRate = firstMessagesSent > 0 ? (repliesReceived / firstMessagesSent) * 100 : 0;

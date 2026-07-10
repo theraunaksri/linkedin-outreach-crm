@@ -29,14 +29,12 @@ export type OutreachTotalsInput = {
   lostDeals: number;
 };
 
-const TOTALS_LABEL = "All-Time Totals";
-
-export async function upsertOutreachTotals(account: LinkedInAccount, data: OutreachTotalsInput) {
+export async function upsertOutreachTotals(account: LinkedInAccount, data: OutreachTotalsInput, periodLabel: string = "All-Time Totals") {
   await assertEditUnlocked();
   await prisma.outreachMetric.upsert({
-    where: { account_periodLabel: { account, periodLabel: TOTALS_LABEL } },
+    where: { account_periodLabel: { account, periodLabel } },
     update: data,
-    create: { account, periodLabel: TOTALS_LABEL, ...data },
+    create: { account, periodLabel, ...data },
   });
 
   revalidatePath("/");
